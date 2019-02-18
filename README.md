@@ -10,7 +10,6 @@
 
 
 `2`.使用技术：request进行初始请求,页面分析beautifulsoup获取关键节点，使用aiohhtp异步下载，为保证丢失的图片不至于过多，使用多进程再进行二次下载。使用
-
 tinkter构造用户图形界面，并有各种错误提示，pyinstaller将py文件打包生成windows下exe可执行文件。
 
 
