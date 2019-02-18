@@ -4,7 +4,7 @@
 ========
 
 
-`1`.该项目通过python3 爬虫技术进行[177漫画](http://www.177pic.info)下载
+`1`.该项目通过python3 爬虫技术进行[177漫画](http://www.177picaa.info)下载
       
 
 
