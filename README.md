@@ -4,7 +4,7 @@
 ========
 
 
-`1`.该项目通过python3 爬虫技术进行[177漫画](http://www.177piczz.info)下载
+`1`.该项目通过python3 爬虫技术进行[177漫画](http://www.177pic001.info)下载
       
 
 
@@ -23,4 +23,6 @@ tinkter构造用户图形界面，并有各种错误提示，pyinstaller将py文
 
 
 `4`.现在看该网站要翻墙，所以如果连正常访问都做不了，那肯定也爬不了！
+
+![……](https://github.com/Areocrystal/177crawel/blob/master/images/9150e4e5gy1g08r7hrk3sj206o06mjrf.jpg)
 
