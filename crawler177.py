@@ -43,14 +43,16 @@ from tkinter import TclError
 
 from PIL import Image, ImageTk
 
+
 class Crawler177:
     error_txt = '1.txt'
     auth_dirname = compile(r'[\<\>\?\:\*\\\/"\|]', M)
     failure = 0
     max_retry = 10
 
-    def __init__(self, url, dir, dda):
+    def __init__(self, url, dir, dda, interface):
         self.url = url
+        self.interface = interface
         if not dir:
             with open(path.join(sys_path[0], dda), 'r') as dir_name:  # path.dirname(__file__)
                 self.dir = dir_name.readline()
@@ -83,11 +85,11 @@ class Crawler177:
 
     def acquire_img(sekf, u):
         try:
-            p_imgs = sekf.bs_soup(u).select('.entry-content img')
+            raw_images = sekf.bs_soup(u).select('.entry-content img')
         except AttributeError:
             pass
         else:
-            return sekf.get_img_source(p_imgs)
+            return sekf.get_img_source(raw_images)
 
     @property
     def headers(self):
@@ -111,7 +113,7 @@ class Crawler177:
         for target in targets:
             try:
                 async with session.get(
-                  url=target, headers=self.headers, timeout=100
+                        url=target, headers=self.headers, timeout=10
                 ) as response:
                     response = await response.read()
             except Exception:
@@ -128,7 +130,7 @@ class Crawler177:
     @retry(timeout, tries=10, delay=.2)
     def download_pics_add(self, target):
         s = Session()
-        response = s.get(url=target, headers=self.headers, timeout=200)
+        response = s.get(url=target, headers=self.headers, timeout=20)
         if response.status_code == 200:
             with open(target[target.rfind('/') + 1:-1], 'wb') as fw:
                 fw.write(response.content)
@@ -167,9 +169,11 @@ class Crawler177:
             ))
             await wait(tasks)
             await self.replenish()
-        messagebox.showinfo(
-            title="完成", message="%s张图片下载成功，%s张下载失败！" % (
-                len(listdir()) - 1, self.failure))
+            session.close()
+            messagebox.showinfo(
+                title="完成", message="%s张图片下载成功，%s张下载失败！" % (
+                    len(listdir()) - 1, self.failure))
+            self.interface.messsage_lable.config(text="本次爬取完成！", fg='#00EE00')
 
     async def replenish(self):
         with open(self.error_txt, "r+") as remainimg:
@@ -201,14 +205,14 @@ class InputGUI(Tk):
         self.bgi.pack(side=RIGHT)
         try:
             self.iconbitmap(self.theme_icon)
+            self.mainloop()
         except TclError:
             pass
-        self.mainloop()
 
     def widget_arrange(self):
         self.input_caption()
         self.input()
-        self.input_error()
+        self.input_message()
         self.directory_choose()
         self.button()
 
@@ -235,9 +239,9 @@ class InputGUI(Tk):
         self.inp.bind("<FocusOut>", is_placeholder)
         self.inp.pack(pady=3, ipadx=5, ipady=2)
 
-    def input_error(self):
-        self.error_lable = Label(self)
-        self.error_lable.pack()
+    def input_message(self):
+        self.messsage_lable = Label(self)
+        self.messsage_lable.pack()
 
     def directory_choose(self):
         self.lb = Label(self, text='')
@@ -268,13 +272,15 @@ class InputGUI(Tk):
             if a_r.match(address):
                 if a_r_tail.search(address):
                     address = address[:address.rfind('/')]
-                Crawler177(address, self.dir_name, self.default_dir_address)
+
+                Crawler177(address, self.dir_name, self.default_dir_address, self)
             elif not is_first:
-                self.error_lable.config(text="请输入正确网址！", fg='crimson')
+                self.messsage_lable.config(text="请输入正确网址！", fg='crimson')
 
         self.btn = Button(self, text="存储地址", bg="azure", fg="#666", padx=5, pady=0, command=choose)
         self.btn.pack(pady=20)
         Button(self, text="开始爬取", width=15, padx=5, pady=0, command=acquire_address).pack()
+
 
 if __name__ == "__main__":
     InputGUI("177漫画单本爬取器")
@@ -290,3 +296,27 @@ if __name__ == "__main__":
 #         os.rename(filename, re.sub(r'$','g', filename))
 
 # http://www.177piczz.info/html/2018/07/2191389.html
+
+
+# proxy_tuple = (
+#     {"http": "118.190.95.35:9001"},
+#     {"https": "211.159.171.58:80"},
+#     {"https": "221.218.102.146:33323"},
+#     {"https": "27.17.45.90:43411"},
+#     {"https": "222.171.251.43:40149"},
+#     {"https": "58.211.200.154:808"},
+#     {"https": "180.110.7.67:808"},
+#     {"https": "182.111.64.7:41766"},
+#     {"https": "121.225.25.103:3128"},
+#     {"https": "218.86.87.171:53281"},
+#     {"https": "121.31.176.135:8123"},
+#     {"http": "119.5.1.56:808"},
+#     {"http": "171.38.65.90:8123"},
+#     {"http": "111.160.236.84:39692"},
+#     {"https": "114.230.41.152:3128"},
+#     {"https": "114.225.170.178:53128"},
+#     {"https": "221.6.32.206:50925"},
+#     {"https": "58.210.94.242:43627"},
+#     {"http": "61.178.238.122:63000"},
+#     {"https": "180.113.97.193:8123"},
+# )
