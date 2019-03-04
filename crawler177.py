@@ -5,8 +5,7 @@ from requests.exceptions import ConnectionError
 
 from sys import path as sys_path
 
-from os \
-    import \
+from os import \
     write as os_write, \
     close as os_close, \
     path, chdir, makedirs, listdir, getcwd, O_CREAT, O_RDWR, open as os_open
@@ -33,13 +32,10 @@ from socket import timeout
 
 from collections import deque
 
-from tkinter import Tk, Label, Button, StringVar, Entry, END, RIGHT, LEFT
+from tkinter import Tk, Label, Button, StringVar, \
+    Entry, END, RIGHT, LEFT, filedialog, TclError
 
-from tkinter import filedialog
-
-from tkinter import messagebox
-
-from tkinter import TclError
+from tkinter.messagebox import showwarning, showinfo, showerror
 
 from PIL import Image, ImageTk
 
@@ -66,10 +62,10 @@ class Crawler177:
     def bs_soup(self, url, retries=1):
         with Session() as S:
             try:
-                response = S.get(url=url, headers=self.headers, timeout=15)
+                response = S.get(url=url, headers=self.headers, timeout=30)
             except ConnectionError:
                 if retries > self.max_retry:
-                    messagebox.showerror(title="错误", message="连接中断，请检查网络或稍后再试！")
+                    showerror(title="错误", message="呃~无法连接上主网站, o(≧口≦)o")
                     S.close()
                     return
                 sleep(float('{:.1f}'.format(random())) + .1)
@@ -112,7 +108,7 @@ class Crawler177:
         for target in targets:
             try:
                 async with session.get(
-                        url=target, headers=self.headers, timeout=10
+                        url=target, headers=self.headers, timeout=30
                 ) as response:
                     response = await response.read()
             except Exception:
@@ -129,7 +125,7 @@ class Crawler177:
     @retry(timeout, tries=10, delay=.2)
     def download_pics_add(self, target):
         s = Session()
-        response = s.get(url=target, headers=self.headers, timeout=20)
+        response = s.get(url=target, headers=self.headers, timeout=60)
         if response.status_code == 200:
             with open(target[target.rfind('/') + 1:-1], 'wb') as fw:
                 fw.write(response.content)
@@ -156,7 +152,6 @@ class Crawler177:
             tip.close()
         loop = get_event_loop()
         loop.run_until_complete(self.collection_start(loop))
-        loop.close()
 
     async def collection_start(self, loop):
         async with ClientSession() as session:  # 官网推荐建立 Session 的形式
@@ -169,8 +164,8 @@ class Crawler177:
             await wait(tasks)
             if self.failure:
                 await self.replenish()
-            messagebox.showinfo(
-                title="完成", message="本次下载完成\n%s张图片下载成功，%s张下载失败！" % (
+            showinfo(
+                title="完成", message=" φ(≧ω≦*)♪\n\n%s张图片下载成功，%s张下载失败！" % (
                     len(listdir()) - 1, self.failure))
 
     async def replenish(self):
@@ -186,7 +181,7 @@ class Crawler177:
 class InputGUI(Tk):
     default_dir_address = 'C:\\Users\default-dir-177.ini'
     bg_address = 'Beautiful-Chinese-girl-retro-style-fantasy.PNG'
-    theme_icon = '10.ico'
+    theme_icon = '7.ico'
 
     def __init__(self, title, resolution='300x200'):
         super().__init__()
@@ -214,7 +209,7 @@ class InputGUI(Tk):
         self.button()
 
     def input_caption(self):
-        inp_caption = Label(self, text='单本地址：', compound = 'center')
+        inp_caption = Label(self, text='单本地址：', compound='center')
         inp_caption.pack()
 
     def input(self):
@@ -225,7 +220,7 @@ class InputGUI(Tk):
             nonlocal inp_tip_text
             self.inp.insert(0, inp_tip_text)
 
-        inp_tip_text = '请输入图片所在网址……'
+        inp_tip_text = '这里输入本子网址﹏'
         inp_tip = StringVar()
         inp_tip.set(inp_tip_text)
 
@@ -254,11 +249,12 @@ class InputGUI(Tk):
         def acquire_address():
             is_first = False
             if not path.isfile(self.default_dir_address):
-                self.lb.config(text="请先选择文件夹", justify=LEFT, fg='#FA8072')
+                self.lb.config(text="先选择文件夹哦", justify=LEFT, fg='#FA8072')
                 is_first = True
                 choose()
             a_r = compile(
-                r'^https?:\/\/www\.177pic([az]?)\1(\d{3})?\.info\/html\/20[01]\d\/\d{2}\/\d{4,8}\.html(\/\d{1,2})?$', M
+                r'^https?:\/\/www\.177pic([az]?)\1(001)?\.((info)|(net)|(com))\/html\/20\d{2}\/\d{2}\/\d{4,8}\.html(\/\d{1,2})?$',
+                M
             )
             a_r_tail = compile(r'\.html\/\d+$', M | I)
             address = self.inp.get()
@@ -267,48 +263,14 @@ class InputGUI(Tk):
                     address = address[:address.rfind('/')]
                 Crawler177(address, self.dir_name, self.default_dir_address)
             elif not is_first:
-                messagebox.showwarning(title="提示", message="请输入正确网址\n(例如：http://www.177pic001.info/html/2018/07/2191389.html/3)")
+                showwarning(title="提示",
+                            message="Σ( ° △ °|||)︴先输入正确网址喔~~\n(例如：http://www.177pic001.info/html/2018/07/2191389.html/3)")
 
         self.btn = Button(self, text="存储地址", bg="azure", fg="#666", padx=5, pady=0, command=choose)
         self.btn.pack(pady=20)
         Button(self, text="开始爬取", width=15, padx=5, pady=0, command=acquire_address).pack()
 
-
 if __name__ == "__main__":
     InputGUI("177漫画单本爬取器")
 
-# 18/05/2071974
-# 18/05/2071975
-# 18/04/2013585
-
-# 主页都失败: 18/07/2191389 18/07/2191387 17/05/1386287 17/04/1381640 17/04/1367621 17/04/1361852 17/04/1361849 17/04/1361856 17/03/1350158 18/01/1756104
-# os.chdir(base_path)
-# for filename in os.listdir(base_path):
-#     if os.path.splitext(filename)[1] != '.jpg':
-#         os.rename(filename, re.sub(r'$','g', filename))
-
-# http://www.177pic001.info/html/2018/07/2191389.html
-
-
-# proxy_tuple = (
-#     {"http": "118.190.95.35:9001"},
-#     {"https": "211.159.171.58:80"},
-#     {"https": "221.218.102.146:33323"},
-#     {"https": "27.17.45.90:43411"},
-#     {"https": "222.171.251.43:40149"},
-#     {"https": "58.211.200.154:808"},
-#     {"https": "180.110.7.67:808"},
-#     {"https": "182.111.64.7:41766"},
-#     {"https": "121.225.25.103:3128"},
-#     {"https": "218.86.87.171:53281"},
-#     {"https": "121.31.176.135:8123"},
-#     {"http": "119.5.1.56:808"},
-#     {"http": "171.38.65.90:8123"},
-#     {"http": "111.160.236.84:39692"},
-#     {"https": "114.230.41.152:3128"},
-#     {"https": "114.225.170.178:53128"},
-#     {"https": "221.6.32.206:50925"},
-#     {"https": "58.210.94.242:43627"},
-#     {"http": "61.178.238.122:63000"},
-#     {"https": "180.113.97.193:8123"},
-# )
+# http://www.177pic001.info/html/2018/11/2480655.html
