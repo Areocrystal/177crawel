@@ -50,9 +50,8 @@ class Crawler177:
     failure = 0
     max_retry = 10
 
-    def __init__(self, url, dir, dda, interface):
+    def __init__(self, url, dir, dda):
         self.url = url
-        self.interface = interface
         if not dir:
             with open(path.join(sys_path[0], dda), 'r') as dir_name:  # path.dirname(__file__)
                 self.dir = dir_name.readline()
@@ -168,12 +167,11 @@ class Crawler177:
                 self.download_pics(session, self.acquire_img_1)
             ))
             await wait(tasks)
-            await self.replenish()
-            session.close()
+            if self.failure:
+                await self.replenish()
             messagebox.showinfo(
-                title="完成", message="%s张图片下载成功，%s张下载失败！" % (
+                title="完成", message="本次下载完成\n%s张图片下载成功，%s张下载失败！" % (
                     len(listdir()) - 1, self.failure))
-            self.interface.messsage_lable.config(text="本次爬取完成！", fg='#00EE00')
 
     async def replenish(self):
         with open(self.error_txt, "r+") as remainimg:
@@ -212,12 +210,11 @@ class InputGUI(Tk):
     def widget_arrange(self):
         self.input_caption()
         self.input()
-        self.input_message()
         self.directory_choose()
         self.button()
 
     def input_caption(self):
-        inp_caption = Label(self, text='单本地址：')
+        inp_caption = Label(self, text='单本地址：', compound = 'center')
         inp_caption.pack()
 
     def input(self):
@@ -239,12 +236,8 @@ class InputGUI(Tk):
         self.inp.bind("<FocusOut>", is_placeholder)
         self.inp.pack(pady=3, ipadx=5, ipady=2)
 
-    def input_message(self):
-        self.messsage_lable = Label(self)
-        self.messsage_lable.pack()
-
     def directory_choose(self):
-        self.lb = Label(self, text='')
+        self.lb = Label(self)
         self.lb.pack()
 
     def button(self):
@@ -272,10 +265,9 @@ class InputGUI(Tk):
             if a_r.match(address):
                 if a_r_tail.search(address):
                     address = address[:address.rfind('/')]
-
-                Crawler177(address, self.dir_name, self.default_dir_address, self)
+                Crawler177(address, self.dir_name, self.default_dir_address)
             elif not is_first:
-                self.messsage_lable.config(text="请输入正确网址！", fg='crimson')
+                messagebox.showwarning(title="提示", message="请输入正确网址\n(例如：http://www.177pic001.info/html/2018/07/2191389.html/3)")
 
         self.btn = Button(self, text="存储地址", bg="azure", fg="#666", padx=5, pady=0, command=choose)
         self.btn.pack(pady=20)
@@ -295,7 +287,7 @@ if __name__ == "__main__":
 #     if os.path.splitext(filename)[1] != '.jpg':
 #         os.rename(filename, re.sub(r'$','g', filename))
 
-# http://www.177piczz.info/html/2018/07/2191389.html
+# http://www.177pic001.info/html/2018/07/2191389.html
 
 
 # proxy_tuple = (
