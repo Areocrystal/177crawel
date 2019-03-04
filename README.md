@@ -21,7 +21,11 @@ tinkter构造用户图形界面，并有各种错误提示，pyinstaller将py文
 
 
 `4`.可能会出现如下两个错误：
+
+
 ![……](https://github.com/Areocrystal/177crawel/blob/master/images/error/error1.png)
+
+
 ![……](https://github.com/Areocrystal/177crawel/blob/master/images/error/error2.png)
 
 
