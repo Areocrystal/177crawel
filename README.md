@@ -16,13 +16,17 @@ tinkter构造用户图形界面，并有各种错误提示，pyinstaller将py文
 
 
 
-`3`.使用方法：直接点开`dist`文件夹下的`exe`文件，先选择本地存储地址（请确保C盘下`User`文件夹有读取权限！！！），再输入漫画的url地址（格式如`http://www.177piczz.info/html/2018/07/2191389.html`，直接复制粘贴浏览器地址栏）即可下载。
+`3`.使用方法：直接点开`production`文件夹下的`crawler177.exe`程序即可，先选择本地存储地址（请确保C盘下`User`文件夹有读取权限！！！），再输入漫画的url地址（格式如`http://www.177piczz.info/html/2018/07/2191389.html`，直接复制粘贴浏览器地址栏）即可下载。
 
 
 
+`4`.可能会出现如下两个错误：
 
 
-`4`.现在看该网站要翻墙，所以如果连正常访问都做不了，那肯定也爬不了！
+`5`.现在看该网站要翻墙，所以如果连正常访问都做不了，那肯定也爬不了！
 
 ![……](https://github.com/Areocrystal/177crawel/blob/master/images/9150e4e5gy1g08r7hrk3sj206o06mjrf.jpg)
+
+
+
 
