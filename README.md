@@ -10,9 +10,9 @@
 `2`.__使用方法__：-_直接点开**production**文件夹下的**crawler177.exe**程序即可，先选择本地存储地址（请确保C盘下`User`文件夹有读取权限，会记住初次选择！！！），再输入漫画的url地址即可下载_。
 
 
-`3`.使用技术：request进行初始请求,页面分析beautifulsoup获取关键节点，先使用asyncio、aiohttp进行异步下载，为保证丢失的图片不至于过多，使用多进程、retry模块再进行二次下载。使用tinkter构造用户图形界面，并有各种错误提示，pyinstaller将py文件打包生成windows下exe可执行文件。
+`3`.__使用技术__：fake_useragent伪造ua信息，request进行初始请求,页面分析beautifulsoup获取关键节点，先使用asyncio、aiohttp进行异步下载，为保证丢失的图片不至于过多，使用多进程、retry再进行二次下载。tkinter构造用户图形交互界面，并有涵盖各种错误提示，PyInstaller将.py文件打包生成windows下exe可执行文件。
 
-`4`.*__注意事项(重要)__：
+`4`.*__注意事项__：
 
      [1].使用时请务必关闭xx卫士、xx管家等杀毒软件（尤其360）;
       
