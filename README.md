@@ -7,7 +7,7 @@
 `1`.该项目通过python3.6 爬虫技术对177漫画网上的本子资源进行下载:smiley:；
       
 
-`2`.__使用方法__：-_直接点开**production**文件夹下的**crawler177.exe**文件即可，先选择本地存储地址（请确保C盘下`User`文件夹有读取权限，会记住初次选择！！！），再输入漫画单本url即可下载_。
+`2`.__使用方法__：-_直接点开**production**文件夹下的**crawler177.exe**即可，先选择本地存储地址（请确保C盘下`User`文件夹有读取权限，会记住初次选择！！！），再粘贴漫画单本url即可下载_。
 
 
 `3`.__使用技术__：fake_useragent伪造ua信息，request进行初始请求,页面分析beautifulsoup获取关键节点，先使用asyncio、aiohttp进行异步下载，为保证丢失的图片不至于过多，使用多进程、retry再进行二次下载。tkinter构造用户图形交互界面，并涵盖各种错误提示，PyInstaller将.py文件打包生成windows下exe可执行文件。
