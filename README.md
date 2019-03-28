@@ -37,6 +37,8 @@
 
 
 
+`6`.完全开源，请勿用于商业用途。
+
 
 
 ![……](https://github.com/Areocrystal/177crawel/blob/master/images/9150e4e5gy1g08r7hrk3sj206o06mjrf.jpg)
