@@ -8,7 +8,9 @@ from sys import path as sys_path
 from os import \
     write as os_write, \
     close as os_close, \
-    path, chdir, makedirs, listdir, getcwd, O_CREAT, O_RDWR, open as os_open
+    chdir, makedirs, listdir, getcwd, O_CREAT, O_RDWR, open as os_open
+
+from os.path import join as path_join, basename, isdir, isfile
 
 from re import compile, M, I
 
@@ -49,7 +51,7 @@ class Crawler177:
     def __init__(self, url, dir, dda):
         self.url = url
         if not dir:
-            with open(path.join(sys_path[0], dda), 'r') as dir_name:  # path.dirname(__file__)
+            with open(path_join(sys_path[0], dda), 'r') as dir_name:  # path.dirname(__file__)
                 self.dir = dir_name.readline()
                 dir_name.close()
         else:
@@ -118,7 +120,7 @@ class Crawler177:
                     img_url.close()
                 continue
             else:
-                with open(path.basename(target), 'wb') as fw:
+                with open(basename(target), 'wb') as fw:
                     fw.write(response)
                     fw.close()
 
@@ -143,7 +145,7 @@ class Crawler177:
         t = self.acquire_title
         if self.auth_dirname.search(t):
             t = self.auth_dirname.sub('', t)
-        if not path.isdir(t):
+        if not isdir(t):
             makedirs(t)
         a = "%s/%s" % (self.dir, t)
         chdir(a)
@@ -165,7 +167,7 @@ class Crawler177:
             if self.failure:
                 await self.replenish()
             showinfo(
-                title="完成", message=" φ(≧ω≦*)♪\n\n%s张图片下载成功，%s张下载失败！" % (
+                title="完成", message=" φ(≧ω≦*)♪\n\r\n%s张图片下载成功，%s张下载失败！" % (
                     len(listdir()) - 1, self.failure))
 
     async def replenish(self):
@@ -248,12 +250,12 @@ class InputGUI(Tk):
 
         def acquire_address():
             is_first = False
-            if not path.isfile(self.default_dir_address):
+            if not isfile(self.default_dir_address):
                 self.lb.config(text="先选择文件夹哦", justify=LEFT, fg='#FA8072')
                 is_first = True
                 choose()
             a_r = compile(
-                r'^https?:\/\/www\.177pic([az]?)\1(001)?\.((info)|(net)|(com))\/html\/20\d{2}\/\d{2}\/\d{4,8}\.html(\/\d{1,2})?$',
+                r'^https?:\/\/www\.177pic([az]?)\1(001)?\.((info)|(net)|(com)|(org))\/html\/20\d{2}\/\d{2}\/\d{4,8}\.html(\/\d{1,2})?$',
                 M
             )
             a_r_tail = compile(r'\.html\/\d+$', M | I)
