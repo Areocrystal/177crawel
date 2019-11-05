@@ -1,4 +1,4 @@
-# coding="utf-8"
+# coding:utf-8
 from requests import Session
 from requests.exceptions import ConnectionError
 from sys import path as sys_path
@@ -10,12 +10,10 @@ from re import compile, M, I
 from time import sleep
 from bs4 import BeautifulSoup
 from aiohttp import ClientSession
-from asyncio import get_event_loop, wait, ensure_future
+from asyncio import get_event_loop, ensure_future, gather, Semaphore
 from fake_useragent import UserAgent
-from retry import retry
 from multiprocessing import cpu_count, Pool
 from random import random
-from socket import timeout
 from collections import deque
 from tkinter import Tk, Label, Button, StringVar, \
     Entry, END, RIGHT, LEFT, filedialog, TclError
@@ -24,37 +22,55 @@ from PIL import Image, ImageTk
 from win32 import win32clipboard as wcb
 from win32.lib import win32con
 
-PROXIES = {'http': 'http://127.0.0.1:25378', 'https': 'http://127.0.0.1:25378'}  # vpn代理地址
+VERSION = '2.0'
+PROXIES = {"http": "http://127.0.0.1:25378", "https": "http://127.0.0.1:25378"}  # vpn代理地址
 HEADERS = {
     "Upgrade-Insecure-Requests": "1",
     "Proxy-Connection": "close",
+    "Cache-Control": "max-age=0",
     "User-Agent": UserAgent().random,
 }
-IMG_LOC = '#main .single-content > p > img'
+ERR_TXT = "1.txt"
+DEFAULT_DIR_ADDRESS = "C:\\Users\default-dir-177.ini"
+BG_ADDRESS = 'Beautiful-Chinese-girl-retro-style-fantasy.PNG'
+THEME_ICON = '6.ico'
+IMG_LOC = "#main .single-content > p > img"
+TITLE_LOC = "#main .entry-title"
+PAGINATION_LOC = "#main .page-links > a"
+MAX_RETRY = 10
 
 
 # 多进程指向调用函数，不得不设置成全局
 def bs_soup_others(url):
-    def get_img_source(img_list):
-        return list(map(lambda img: img.get('data-lazy-src'), img_list))  # 该网站现在采用图片懒加载
-
     with Session() as S:
         try:
-            response = S.get(url=url, headers=dict(HEADERS, **{"Referer": url}), proxies=PROXIES, timeout=45)
+            response = S.get(url=url, headers=dict(HEADERS, **{"Referer": url}), proxies=PROXIES, timeout=30)
             response.encoding = 'utf-8'
         except ConnectionError:
-            pass
+            return []
         else:
-            return get_img_source(BeautifulSoup(response.text, features='html.parser').select(IMG_LOC))
+            return list(map(lambda img: img.get('data-lazy-src'),
+                            BeautifulSoup(response.text, features='html.parser').select(IMG_LOC)))
+
+
+def download_pics(target):
+    with Session() as S:
+        try:
+            res = S.get(url=target, headers=dict(HEADERS, **{"Host": "img.177pic.info"}), proxies=PROXIES, timeout=60)
+        except Exception:
+            with open(ERR_TXT, "a+") as img_url:
+                img_url.write(target + "\n")
+                img_url.close()
+        else:
+            res.encoding = 'utf-8'
+            with open(basename(target), 'wb') as fw:
+                fw.write(res.content)
+                fw.close()
 
 
 class Crawler177:
-    error_txt = '1.txt'
     auth_dirname = compile(r'[\<\>\?\:\*\\\/"\|]', M)
     extract_num = compile(r'\[(\d+)p\]$', M | I)
-    MAX_RETRY = 9
-    TITLE_LOC = '#main .entry-title'
-    PAGINATION_LOC = '#main .page-links > a'
 
     def __init__(self, url, dir, dda):
         self.url = url
@@ -72,35 +88,31 @@ class Crawler177:
     def bs_soup(self, url, retries=1):
         with Session() as S:
             try:
-                response = S.get(url=url, headers=dict(HEADERS, **self.headers), proxies=PROXIES, timeout=30)
+                response = S.get(url=url, headers=dict(HEADERS, **{"Referer": self.url}), proxies=PROXIES, timeout=60)
             except ConnectionError:
-                if retries > self.MAX_RETRY:
+                if retries > MAX_RETRY:
                     showerror(title="网络错误", message="呃~无法连接上主网站,请设置vpn, o(≧口≦)o")
                     S.close()
                     return
-                sleep(float('{:.1f}'.format(random())) + .1)
+                self.bs_soup(self, url, retries + 1)
             else:
                 response.encoding = 'utf-8'
                 return BeautifulSoup(response.text, features='html.parser')
 
     @property
-    def headers(self):
-        return {"Referer": self.url}
-
-    @property
     def acquire_img_1(self):
-        return list(map(lambda img: img.get('data-lazy-src'), self.html.select(IMG_LOC)))
+        return self.get_img_source(self.html.select(IMG_LOC))
 
     @property
     def acquire_pagination(self):
         return list(map(
             lambda anchor: anchor.get('href'),
-            self.html.select(self.PAGINATION_LOC)[1:-1]
+            self.html.select(PAGINATION_LOC)[1:-1]
         ))
 
     @property
     def acquire_title(self):
-        return self.html.select(self.TITLE_LOC)[0].get_text()
+        return self.html.select(TITLE_LOC)[0].get_text()
 
     @property
     def get_picture_nums(self):
@@ -111,37 +123,49 @@ class Crawler177:
     def private_imgs(self):
         return len(list(filter(lambda x: not bool(compile(r'\.txt$').search(x)), listdir())))
 
-    async def download_pics(self, session, targets):
-        for target in targets:
-            try:
-                async with session.get(url=target, headers=dict(HEADERS, **{"Host": "img.177pic.info"}),
-                                       proxy=PROXIES['http']) as response:
-                    response = await response.read()
-            except Exception:
-                with open(self.error_txt, "a+") as img_url:
-                    img_url.write(target + "\n")
-                    img_url.close()
-                continue
-            else:
-                with open(basename(target), 'wb') as fw:
-                    fw.write(response)
-                    fw.close()
+    @property
+    def get_url_list(self):
+        get_src_pool = Pool(processes=int(cpu_count() * 1.5))
+        src_list = []
+        for url in self.acquire_pagination:
+            src_list.append(get_src_pool.apply_async(func=bs_soup_others, args=(url,)))
+        get_src_pool.close()
+        get_src_pool.join()
+        return self.acquire_img_1 + sum([src.get() for src in src_list], [])
 
-    @retry(timeout, tries=15, delay=.2)
-    def download_pics_add(self, target):
-        s = Session()
-        response = s.get(url=target, headers=dict(HEADERS, **{"Host": "img.177pic.info"}), proxies=PROXIES)
-        if response.status_code == 200:
-            with open(target[target.rfind('/') + 1:-1], 'wb') as fw:
-                fw.write(response.content)
-                fw.close()
-            with open(self.error_txt, mode="r") as urls:
-                content = urls.read()
-                urls.close()
-            with open(self.error_txt, mode="w+") as urls:
-                urls.write(content.replace(target, ''))
-                urls.close()
-        s.close()
+    @staticmethod
+    def get_img_source(img_list):
+        return list(map(lambda img: img.get('data-lazy-src'), img_list))  # 该网站现在采用图片懒加载
+
+    def acquire_img(self, u):
+        try:
+            result = self.bs_soup(u).select(IMG_LOC)
+        except TypeError:
+            pass
+        else:
+            return self.get_img_source(result)
+
+    @staticmethod
+    async def download_pics_add(target, restriction):
+        async with restriction:
+            async with ClientSession() as session:  # 官网推荐建立 Session 的形式
+                try:
+                    async with session.get(url=target, headers=dict(HEADERS, **{"Host": "img.177pic.info"}),
+                                           proxy=PROXIES['http'], timeout=150) as r:
+                        response = await r.read()
+                except Exception:
+                    pass
+                else:
+                    with open(target[target.rfind('/') + 1:-1], 'wb') as fw:
+                        fw.write(response)
+                        fw.close()
+                    with open(ERR_TXT, mode="r") as urls:
+                        content = urls.read()
+                        urls.close()
+                    with open(ERR_TXT, mode="w+") as urls:
+                        urls.write(content.replace(target, ''))
+                        urls.close()
+                await session.close()
 
     def create_dir(self):
         t = self.acquire_title
@@ -151,48 +175,38 @@ class Crawler177:
             makedirs(t)
         a = "%s/%s" % (self.dir, t)
         chdir(a)
-        with open("%s/%s" % (a, self.error_txt), "w") as tip:
+        with open("%s/%s" % (a, ERR_TXT), "w") as tip:
             tip.write("{} 下载失败的图片：\n".format(self.url))
             tip.close()
+        self.collection_process()
+
+    def collection_process(self):
+        download_pool = Pool(processes=int(cpu_count() * 1.5))
+        for url in self.get_url_list:
+            download_pool.apply_async(func=download_pics, args=(url,))
+        download_pool.close()
+        download_pool.join()
+        self.replenish()
+
+    def replenish(self):
         loop = get_event_loop()
-        loop.run_until_complete(ensure_future(self.collection_process(loop)))
-
-    @property
-    def get_url_list(self):
-        get_src_pool = Pool(processes=int(cpu_count() * 1.5))
-        src_list = []
-        for url in self.acquire_pagination:
-            src_list.append(get_src_pool.apply_async(func=bs_soup_others, args=(url,)))
-        get_src_pool.close()
-        get_src_pool.join()
-        return sum([src.get() for src in src_list], []) + self.acquire_img_1
-
-    async def collection_process(self, loop):
-        async with ClientSession() as session:  # 官网推荐建立 Session 的形式
-            tasks = deque([
-                loop.create_task(self.download_pics(session, self.get_url_list))
-            ])
-            await wait(tasks)
-            await self.replenish()
-            showinfo(
-                title="完成", message=" φ(≧ω≦*)♪\n\r\n%s张图片下载成功，%s张下载失败！" % (
-                    self.private_imgs, self.get_picture_nums - self.private_imgs
-                )
-            )
-
-    async def replenish(self):
-        with open(self.error_txt, "r+") as remain_img:
-            left_img = Pool(processes=int(cpu_count() * 1.5))
-            left_img.map_async(func=self.download_pics_add, iterable=remain_img.readlines()[1:])
-            left_img.close()
-            left_img.join()
+        with open(ERR_TXT, "r+") as remain_img:
+            tasks = [
+                ensure_future(
+                    self.download_pics_add(u, Semaphore(100))
+                ) for u in remain_img.readlines()[1:]
+            ]
+            loop.run_until_complete(gather(*tasks))
             remain_img.close()
+        loop.close()
+        showinfo(
+            title="完成", message=" φ(≧ω≦*)♪\n\r\n%s张图片下载成功，%s张下载失败！" % (
+                self.private_imgs, self.get_picture_nums - self.private_imgs
+            )
+        )
 
 
 class InputGUI(Tk):
-    default_dir_address = 'C:\\Users\default-dir-177.ini'
-    bg_address = 'Beautiful-Chinese-girl-retro-style-fantasy.PNG'
-    theme_icon = '6.ico'
     site_detect = compile(
         r'^https?:\/\/www\.177pic([az]?)\1(001)?\.((info)|(net)|(com)|(org))\/html\/20\d{2}\/\d{2}\/\d{4,8}\.html(\/\d{1,2}\/?)?$',
         M
@@ -206,13 +220,13 @@ class InputGUI(Tk):
         self.geometry(resolution)
         self.widget_arrange()
         try:
-            set_bgi = ImageTk.PhotoImage(Image.open(fp=self.bg_address))
+            set_bgi = ImageTk.PhotoImage(Image.open(fp=BG_ADDRESS))
             self.bgi = Label(self, text='', image=set_bgi)
         except FileNotFoundError:
             self.bgi = Label(self)
         self.bgi.pack(side=RIGHT)
         try:
-            self.iconbitmap(self.theme_icon)
+            self.iconbitmap(THEME_ICON)
         except TclError:
             pass
         else:
@@ -262,7 +276,7 @@ class InputGUI(Tk):
     def button(self):
         def choose():
             self.dir_name = filedialog.askdirectory(initialdir="")
-            dda = self.default_dir_address
+            dda = DEFAULT_DIR_ADDRESS
             dn = self.dir_name
             if dn:
                 try:
@@ -282,8 +296,7 @@ class InputGUI(Tk):
 
         def acquire_address():
             is_first = False
-            ifp = True  # 从第一页开始
-            if not isfile(self.default_dir_address):
+            if not isfile(DEFAULT_DIR_ADDRESS):
                 self.lb.config(text="先选择文件夹哦", justify=LEFT, fg='#FA8072')
                 is_first = True
                 choose()
@@ -293,8 +306,7 @@ class InputGUI(Tk):
                 a_r_tail_search = a_r_tail.search(address)
                 if bool(a_r_tail_search):
                     address = a_r_tail_search.group(1)
-                    ifp = False
-                Crawler177(address, self.dir_name, self.default_dir_address)
+                Crawler177(address, self.dir_name, DEFAULT_DIR_ADDRESS)
             elif not is_first:
                 showwarning(title="提示",
                             message="Σ( ° △ °|||)︴先输入正确网址喔~~\n(例如：http://www.177pic001.info/html/2018/07/2191389.html/3)")
