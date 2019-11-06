@@ -7,7 +7,6 @@ from os import write as os_write, close as os_close, \
     remove as os_remove, listdir
 from os.path import join as path_join, basename, isdir, isfile
 from re import compile, M, I
-from time import sleep
 from bs4 import BeautifulSoup
 from aiohttp import ClientSession
 from asyncio import get_event_loop, ensure_future, gather, Semaphore
@@ -23,6 +22,7 @@ from win32 import win32clipboard as wcb
 from win32.lib import win32con
 
 VERSION = '2.0'
+
 PROXIES = {"http": "http://127.0.0.1:25378", "https": "http://127.0.0.1:25378"}  # vpn代理地址
 HEADERS = {
     "Upgrade-Insecure-Requests": "1",
@@ -33,40 +33,11 @@ HEADERS = {
 ERR_TXT = "1.txt"
 DEFAULT_DIR_ADDRESS = "C:\\Users\default-dir-177.ini"
 BG_ADDRESS = 'Beautiful-Chinese-girl-retro-style-fantasy.PNG'
-THEME_ICON = '6.ico'
+THEME_ICON = '8.ico'
 IMG_LOC = "#main .single-content > p > img"
 TITLE_LOC = "#main .entry-title"
 PAGINATION_LOC = "#main .page-links > a"
 MAX_RETRY = 10
-
-
-# 多进程指向调用函数，不得不设置成全局
-def bs_soup_others(url):
-    with Session() as S:
-        try:
-            response = S.get(url=url, headers=dict(HEADERS, **{"Referer": url}), proxies=PROXIES, timeout=30)
-            response.encoding = 'utf-8'
-        except ConnectionError:
-            return []
-        else:
-            return list(map(lambda img: img.get('data-lazy-src'),
-                            BeautifulSoup(response.text, features='html.parser').select(IMG_LOC)))
-
-
-def download_pics(target):
-    with Session() as S:
-        try:
-            res = S.get(url=target, headers=dict(HEADERS, **{"Host": "img.177pic.info"}), proxies=PROXIES, timeout=60)
-        except Exception:
-            with open(ERR_TXT, "a+") as img_url:
-                img_url.write(target + "\n")
-                img_url.close()
-        else:
-            res.encoding = 'utf-8'
-            with open(basename(target), 'wb') as fw:
-                fw.write(res.content)
-                fw.close()
-
 
 class Crawler177:
     auth_dirname = compile(r'[\<\>\?\:\*\\\/"\|]', M)
@@ -80,12 +51,12 @@ class Crawler177:
                 dir_name.close()
         else:
             self.dir = dir
-        self.html = self.bs_soup(self.url)
+        self.html = self.bs_soup(self.url, 1)
         if self.html:
             chdir(self.dir)
             self.create_dir()
 
-    def bs_soup(self, url, retries=1):
+    def bs_soup(self, url, retries):
         with Session() as S:
             try:
                 response = S.get(url=url, headers=dict(HEADERS, **{"Referer": self.url}), proxies=PROXIES, timeout=60)
@@ -98,6 +69,35 @@ class Crawler177:
             else:
                 response.encoding = 'utf-8'
                 return BeautifulSoup(response.text, features='html.parser')
+
+    @staticmethod
+    def bs_soup_others(url):
+        with Session() as S:
+            try:
+                response = S.get(url=url, headers=dict(HEADERS, **{"Referer": url}), proxies=PROXIES, timeout=30)
+                response.encoding = 'utf-8'
+            except ConnectionError:
+                return []
+            else:
+                return list(map(lambda img: img.get('data-lazy-src'),
+                                BeautifulSoup(response.text, features='html.parser').select(IMG_LOC)))
+
+    @staticmethod
+    def download_pics(target):
+        with Session() as S:
+            try:
+                res = S.get(url=target, headers=dict(HEADERS, **{"Host": "img.177pic.info"}), proxies=PROXIES,
+                            timeout=150)
+            except Exception as e:
+                print(e)
+                with open(ERR_TXT, "a+") as img_url:
+                    img_url.write(target + "\n")
+                    img_url.close()
+            else:
+                res.encoding = 'utf-8'
+                with open(basename(target), 'wb') as fw:
+                    fw.write(res.content)
+                    fw.close()
 
     @property
     def acquire_img_1(self):
@@ -125,13 +125,14 @@ class Crawler177:
 
     @property
     def get_url_list(self):
-        get_src_pool = Pool(processes=int(cpu_count() * 1.5))
-        src_list = []
-        for url in self.acquire_pagination:
-            src_list.append(get_src_pool.apply_async(func=bs_soup_others, args=(url,)))
-        get_src_pool.close()
-        get_src_pool.join()
-        return self.acquire_img_1 + sum([src.get() for src in src_list], [])
+        # get_src_pool = Pool(processes=int(cpu_count()))
+        # src_list = []
+        # for url in self.acquire_pagination:
+        #     src_list.append(get_src_pool.apply_async(func=self.bs_soup_others, args=(url,)))
+        # get_src_pool.close()
+        # get_src_pool.join()
+        # return self.acquire_img_1 + sum([src.get() for src in src_list], [])
+        return self.acquire_img_1 + sum([Crawler177.bs_soup_others(p) for p in self.acquire_pagination], [])
 
     @staticmethod
     def get_img_source(img_list):
@@ -139,7 +140,7 @@ class Crawler177:
 
     def acquire_img(self, u):
         try:
-            result = self.bs_soup(u).select(IMG_LOC)
+            result = self.bs_soup(u, 1).select(IMG_LOC)
         except TypeError:
             pass
         else:
@@ -183,7 +184,7 @@ class Crawler177:
     def collection_process(self):
         download_pool = Pool(processes=int(cpu_count() * 1.5))
         for url in self.get_url_list:
-            download_pool.apply_async(func=download_pics, args=(url,))
+            download_pool.apply_async(func=self.download_pics, args=(url,))
         download_pool.close()
         download_pool.join()
         self.replenish()
@@ -247,7 +248,10 @@ class InputGUI(Tk):
             nonlocal inp_tip_text
             self.inp.delete(0, END)
             wcb.OpenClipboard()
-            inp_tip_text = wcb.GetClipboardData(win32con.CF_TEXT).decode("gb2312")
+            try:
+                inp_tip_text = wcb.GetClipboardData(win32con.CF_TEXT).decode("gb2312").strip()
+            except (TypeError, UnicodeDecodeError) as e:
+                print(e)
             wcb.CloseClipboard()
             if bool(self.site_detect.match(inp_tip_text)):
                 self.inp.insert(0, inp_tip_text)
@@ -319,5 +323,8 @@ class InputGUI(Tk):
 if __name__ == "__main__":
     InputGUI("177漫画单本下载器")
 
-# http://www.177pic001.info/html/2018/11/2480655.html
+# http://www.177pic.info/html/2018/11/2480655.html
 # http://www.177pic.info/html/2019/10/3172423.html
+
+# http://www.177pic.info/html/2019/11/3188684.html
+# http://www.177pic.info/html/2019/11/3188606.html
