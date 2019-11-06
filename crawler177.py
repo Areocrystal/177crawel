@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 from aiohttp import ClientSession
 from asyncio import get_event_loop, ensure_future, gather, Semaphore
 from fake_useragent import UserAgent
-from multiprocessing import cpu_count, Pool
+from multiprocessing import cpu_count, Pool, freeze_support
 from random import random
 from collections import deque
 from tkinter import Tk, Label, Button, StringVar, \
@@ -20,6 +20,7 @@ from tkinter.messagebox import showwarning, showinfo, showerror
 from PIL import Image, ImageTk
 from win32 import win32clipboard as wcb
 from win32.lib import win32con
+import frozen
 
 VERSION = '2.0'
 
@@ -33,7 +34,7 @@ HEADERS = {
 ERR_TXT = "1.txt"
 DEFAULT_DIR_ADDRESS = "C:\\Users\default-dir-177.ini"
 BG_ADDRESS = 'Beautiful-Chinese-girl-retro-style-fantasy.PNG'
-THEME_ICON = '8.ico'
+THEME_ICON = '11.ico'
 IMG_LOC = "#main .single-content > p > img"
 TITLE_LOC = "#main .entry-title"
 PAGINATION_LOC = "#main .page-links > a"
@@ -125,14 +126,14 @@ class Crawler177:
 
     @property
     def get_url_list(self):
-        # get_src_pool = Pool(processes=int(cpu_count()))
-        # src_list = []
-        # for url in self.acquire_pagination:
-        #     src_list.append(get_src_pool.apply_async(func=self.bs_soup_others, args=(url,)))
-        # get_src_pool.close()
-        # get_src_pool.join()
-        # return self.acquire_img_1 + sum([src.get() for src in src_list], [])
-        return self.acquire_img_1 + sum([Crawler177.bs_soup_others(p) for p in self.acquire_pagination], [])
+        get_src_pool = Pool(processes=int(cpu_count()))
+        src_list = []
+        for url in self.acquire_pagination:
+            src_list.append(get_src_pool.apply_async(func=self.bs_soup_others, args=(url,)))
+        get_src_pool.close()
+        get_src_pool.join()
+        return self.acquire_img_1 + sum([src.get() for src in src_list], [])
+        # return self.acquire_img_1 + sum([Crawler177.bs_soup_others(p) for p in self.acquire_pagination], [])
 
     @staticmethod
     def get_img_source(img_list):
@@ -322,6 +323,7 @@ class InputGUI(Tk):
 
 if __name__ == "__main__":
     InputGUI("177漫画单本下载器")
+    freeze_support()
 
 # http://www.177pic.info/html/2018/11/2480655.html
 # http://www.177pic.info/html/2019/10/3172423.html
