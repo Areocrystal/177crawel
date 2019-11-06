@@ -11,7 +11,7 @@
 
 
 `3`.__使用技术__：fake_useragent伪造ua信息，request进行初始请求,页面分析beautifulsoup获取关键节点，使用多进程下载，异步aiohttp、asyncio
-会被拦截已放弃。tkinter构造用户图形交互界面，并涵盖各种错误提示，pyInstaller将.py文件打包生成windows下exe可执行文件,解决pyinstaller打包多进程文件执行时无响应还会大量占用cpu和内存资源造成系统卡死的问题。
+会被拦截已放弃。tkinter构造用户图形交互界面，并涵盖各种错误提示，pyInstaller将.py文件打包生成windows下exe可执行文件,解决pyinstaller打包多进程文件执行时无响应还会大量占用cpu和内存资源造成系统卡死的问题，通过访问windows剪切板实现智能粘贴。
 
 `4`.*__注意事项__：
 
