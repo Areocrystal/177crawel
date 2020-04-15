@@ -22,7 +22,7 @@ from win32 import win32clipboard as wcb
 from win32.lib import win32con
 import frozen
 
-VERSION = '2.0'
+VERSION = '2.3'
 
 PROXIES = {"http": "http://127.0.0.1:25378", "https": "http://127.0.0.1:25378"}  # vpn代理地址
 HEADERS = {
@@ -34,7 +34,7 @@ HEADERS = {
 ERR_TXT = "1.txt"
 DEFAULT_DIR_ADDRESS = "C:\\Users\default-dir-177.ini"
 BG_ADDRESS = 'Beautiful-Chinese-girl-retro-style-fantasy.PNG'
-THEME_ICON = '11.ico'
+THEME_ICON = '10.ico'
 IMG_LOC = "#main .single-content > p > img"
 TITLE_LOC = "#main .entry-title"
 PAGINATION_LOC = "#main .page-links > a"
@@ -158,7 +158,7 @@ class Crawler177:
                 except Exception:
                     pass
                 else:
-                    with open(target[target.rfind('/') + 1:-1], 'wb') as fw:
+                    with open(target[target.rfind('/') + 1: -1], 'wb') as fw:
                         fw.write(response)
                         fw.close()
                     with open(ERR_TXT, mode="r") as urls:
@@ -210,7 +210,7 @@ class Crawler177:
 
 class InputGUI(Tk):
     site_detect = compile(
-        r'^https?:\/\/www\.177pic([az]?)\1(001)?\.((info)|(net)|(com)|(org))\/html\/20\d{2}\/\d{2}\/\d{4,8}\.html(\/\d{1,2}\/?)?$',
+        r'^https?:\/\/www\.177pic([az]?)\1(001)?\.(info|net|com|org|pw)\/html\/20\d{2}\/\d{2}\/\d{4,8}\.html(\/\d{1,2}\/?)?$',
         M
     )
 
